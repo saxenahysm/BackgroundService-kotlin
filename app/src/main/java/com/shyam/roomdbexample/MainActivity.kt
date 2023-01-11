@@ -1,12 +1,17 @@
 package com.shyam.roomdbexample
 
+import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
+import com.shyam.roomdbexample.UtilsForBG.LocationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -16,7 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bookDao: BookDao
 
     @RequiresApi(Build.VERSION_CODES.O)
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     @RequiresApi(Build.VERSION_CODES.O)
     val current = LocalDateTime.now().format(formatter)
@@ -25,6 +30,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        ActivityCompat.requestPermissions(
+            this, arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+            ), 0
+        )
 
 
         val db = Room.databaseBuilder(
@@ -54,8 +65,7 @@ class MainActivity : AppCompatActivity() {
                     "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.time}"
                 )
             }
-/*
-            //Update
+            /*//Update
             Log.i("MyTAG","*****      Updating a book      **********")
             bookDao.updateBook(Book(1,"PHP Updated","Mike"))
             //Query
@@ -77,7 +87,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    fun insertData() {
+    fun insertData(view: View) {
         lifecycleScope.launch(Dispatchers.IO) {
             //Insert
             Log.i("MyTAG", "*****     Inserting 3 Books     **********")
@@ -89,7 +99,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    fun getAllData() {
+    fun getAllData(view: View) {
         lifecycleScope.launch(Dispatchers.IO) {
             //Query
             val books = bookDao.getAllBook()
@@ -100,6 +110,21 @@ class MainActivity : AppCompatActivity() {
                     "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.time}"
                 )
             }
+        }
+    }
+
+    fun stopService(view: View) {
+
+        Intent(applicationContext, LocationService::class.java).apply {
+            action = LocationService.ACTION_START
+            startService(this)
+        }
+    }
+
+    fun startService(view: View) {
+        Intent(applicationContext, LocationService::class.java).apply {
+            action = LocationService.ACTION_STOP
+            startService(this)
         }
     }
 }

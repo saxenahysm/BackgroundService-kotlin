@@ -11,6 +11,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
+import com.shyam.roomdbexample.permissionChecker.hasLocationPermission
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -21,9 +22,9 @@ class DefaultLocationClient(
 ) : LocationClient {
     override fun getLocationUpdate(interval: Long): Flow<Location> {
         return callbackFlow {
-//        if(!context.hasLocationPermission()) {
-//            throw LocationClient.LocationException("Missing location permission")
-//        }
+            if (!context.hasLocationPermission()) {
+                throw LocationClient.LocationException("Missing location permission")
+            }
             val locationManager =
                 context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
             val isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
@@ -48,14 +49,7 @@ class DefaultLocationClient(
                     context, Manifest.permission.ACCESS_COARSE_LOCATION
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-
+                
             }
             client.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
 
