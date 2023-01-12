@@ -21,10 +21,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var bookDao: BookDao
 
     @RequiresApi(Build.VERSION_CODES.O)
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     @RequiresApi(Build.VERSION_CODES.O)
-    val current = LocalDateTime.now().format(formatter)
+    val current: String = LocalDateTime.now().format(formatter)
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +42,7 @@ class MainActivity : AppCompatActivity() {
             applicationContext, BookDatabase::class.java, "book_database"
         ).build()
         bookDao = db.bookDao()
-        testDB()
+//        testDB()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -65,25 +65,7 @@ class MainActivity : AppCompatActivity() {
                     "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.time}"
                 )
             }
-            /*//Update
-            Log.i("MyTAG","*****      Updating a book      **********")
-            bookDao.updateBook(Book(1,"PHP Updated","Mike"))
-            //Query
-            val books2 = bookDao.getAllBook()
-            Log.i("MyTAG","*****   ${books2.size} books there *****")
-            for(book in books2){
-                Log.i("MyTAG","id: ${book.id} name: ${book.name} author: ${book.author}")
-            }
-
-            //delete
-            Log.i("MyTAG","*****       Deleting a book      **********")
-            bookDao.deleteBook(Book(1,"PHP","Mike"))
-            val books3 = bookDao.getAllBook()
-            for(book in books3){
-                Log.i("MyTAG","id: ${book.id} name: ${book.name} author: ${book.author}")
-            }*/
         }
-
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -116,14 +98,14 @@ class MainActivity : AppCompatActivity() {
     fun stopService(view: View) {
 
         Intent(applicationContext, LocationService::class.java).apply {
-            action = LocationService.ACTION_START
+            action = LocationService.ACTION_STOP
             startService(this)
         }
     }
 
     fun startService(view: View) {
         Intent(applicationContext, LocationService::class.java).apply {
-            action = LocationService.ACTION_STOP
+            action = LocationService.ACTION_START
             startService(this)
         }
     }

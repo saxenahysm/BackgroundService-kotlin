@@ -49,7 +49,7 @@ class DefaultLocationClient(
                     context, Manifest.permission.ACCESS_COARSE_LOCATION
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                
+
             }
             client.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
 

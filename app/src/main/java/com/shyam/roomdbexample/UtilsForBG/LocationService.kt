@@ -5,6 +5,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.android.gms.location.LocationServices
 import com.shyam.roomdbexample.R
@@ -33,35 +34,34 @@ class LocationService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            Companion.ACTION_START -> start()
-            Companion.ACTION_STOP -> stop()
+            ACTION_START -> start()
+            ACTION_STOP -> stop()
         }
         return super.onStartCommand(intent, flags, startId)
     }
 
-    private fun stop() {
-        stopForeground(true)
-        stopSelf()
-    }
 
     private fun start() {
-
         val notification =
-            NotificationCompat.Builder(this, "location-1").setContentText("Location:null")
+            NotificationCompat.Builder(this, "Location").setContentText("Location:null")
                 .setContentTitle("Track-location-Test").setSmallIcon(R.mipmap.ic_launcher)
                 .setOngoing(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        locationClient.getLocationUpdate(50000L).catch {
+        locationClient.getLocationUpdate(5000L).catch { e -> e.printStackTrace() }
+            .onEach { location ->
+                val lat = location.latitude.toString()
+                val lng = location.longitude.toString()
+                val updatedNotification = notification.setContentText("Location:($lat,$lng)")
+                notificationManager.notify(1, updatedNotification.build())
+                Log.e("TAG111111", "lat--- $lat : lng--- $lng" )
+            }.launchIn(serviceScope)
 
-        }.onEach { location ->
-            val lat = location.latitude
-            val lng = location.longitude
-            val updatedNotification = notification.setContentText("Location:($lat,$lng)")
-            notificationManager.notify(1, updatedNotification.build())
-        }.launchIn(serviceScope)
-
-        startForeground(1, null)
+        startForeground(1, notification.build())
+    }
+    private fun stop() {
+        stopForeground(true)
+        stopSelf()
     }
 
     companion object {
