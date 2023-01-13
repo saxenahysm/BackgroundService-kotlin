@@ -8,10 +8,11 @@
 
     <TextView
         android:id="@+id/textView"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
-        android:text="Hello World!"
+        android:gravity="center"
+        android:text="You are being tracking by us!"
         android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.05"
@@ -27,7 +28,6 @@
         android:text="Insert Data"
         android:textAllCaps="false"
         app:layout_constraintEnd_toStartOf="@+id/btn_get_data"
-        app:layout_constraintHorizontal_bias="0.621"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_goneMarginEnd="10dp"
@@ -37,7 +37,7 @@
         android:id="@+id/btn_get_data"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="80dp"
+        android:layout_marginEnd="66dp"
         android:onClick="getAllData"
         android:text="Get All Data"
         android:textAllCaps="false"
@@ -51,13 +51,11 @@
         android:id="@+id/btn_start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:layout_marginEnd="10dp"
+        android:layout_marginTop="16dp"
         android:onClick="startService"
         android:text="Start-tracking"
         android:textAllCaps="false"
         app:layout_constraintEnd_toEndOf="@+id/btn_insert"
-        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="@+id/btn_insert"
         app:layout_constraintTop_toBottomOf="@+id/btn_insert" />
 
@@ -65,14 +63,27 @@
         android:id="@+id/btn_stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="68dp"
         android:onClick="stopService"
         android:text="Stop-tracking"
         android:textAllCaps="false"
         app:layout_constraintBottom_toBottomOf="@+id/btn_start"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/btn_get_data"
+        app:layout_constraintStart_toStartOf="@+id/btn_get_data"
         app:layout_constraintTop_toTopOf="@+id/btn_start"
-        app:layout_constraintVertical_bias="1.0"
         app:layout_goneMarginEnd="10dp" />
 
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        app:layout_constraintTop_toBottomOf="@+id/btn_start"
+        tools:layout_editor_absoluteX="0dp">
+
+        <TextView
+            android:id="@+id/txt_record"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Records will print" />
+    </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>
