@@ -51,9 +51,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             //Insert
             Log.i("MyTAG", "*****     Inserting 3 Books     **********")
-            bookDao.insertBook(Book(0, "Java", "Alex", current.toString()))
-            bookDao.insertBook(Book(0, "PHP", "Mike", current.toString()))
-            bookDao.insertBook(Book(0, "Kotlin", "Amelia", current.toString()))
+            bookDao.insertBook(Book(0, "Java", "Alex", current))
+            bookDao.insertBook(Book(0, "PHP", "Mike", current))
+            bookDao.insertBook(Book(0, "Kotlin", "Amelia", current))
             Log.i("MyTAG", "*****     Inserted 3 Books       **********")
 
             //Query
@@ -73,12 +73,11 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch(Dispatchers.IO) {
             //Insert
             Log.i("MyTAG", "*****     Inserting 3 Books     **********")
-            bookDao.insertBook(Book(0, "Java", "Alex", current.toString()))
-            bookDao.insertBook(Book(0, "PHP", "Mike", current.toString()))
-            bookDao.insertBook(Book(0, "Kotlin", "Amelia", current.toString()))
+            bookDao.insertBook(Book(0, "Java", "Alex", current))
+            bookDao.insertBook(Book(0, "PHP", "Mike", current))
+            bookDao.insertBook(Book(0, "Kotlin", "Amelia", current))
             Log.i("MyTAG", "*****     Inserted 3 Books       **********")
         }
-
     }
 
     fun getAllData(view: View) {

@@ -1,6 +1,7 @@
 package com.shyam.roomdbexample.UtilsForBG
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
@@ -20,7 +21,9 @@ import kotlinx.coroutines.launch
 class DefaultLocationClient(
     private val context: Context, private val client: FusedLocationProviderClient
 ) : LocationClient {
-    override fun getLocationUpdate(interval: Long): Flow<Location> {
+
+    @SuppressLint("MissingPermission")
+    override fun getLocationUpdates(interval: Long): Flow<Location> {
         return callbackFlow {
             if (!context.hasLocationPermission()) {
                 throw LocationClient.LocationException("Missing location permission")
@@ -43,17 +46,11 @@ class DefaultLocationClient(
                     }
                 }
             }
-            if (ActivityCompat.checkSelfPermission(
-                    context, Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                    context, Manifest.permission.ACCESS_COARSE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
 
-            }
             client.requestLocationUpdates(request, locationCallback, Looper.getMainLooper())
 
             awaitClose { client.removeLocationUpdates(locationCallback) }
         }
     }
+
 }
