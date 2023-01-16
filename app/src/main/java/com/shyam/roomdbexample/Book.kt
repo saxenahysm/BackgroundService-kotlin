@@ -11,5 +11,5 @@ data class Book(
     @PrimaryKey(autoGenerate = true) var id: Int,
     var lat: String,
     var lng: String,
-    var time:String
+    var created_at:String
 )

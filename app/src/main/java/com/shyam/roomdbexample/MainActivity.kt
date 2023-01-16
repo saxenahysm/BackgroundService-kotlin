@@ -11,14 +11,21 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
+import com.android.volley.DefaultRetryPolicy
+import com.android.volley.Request
+import com.android.volley.Response
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
 import com.shyam.roomdbexample.UtilsForBG.LocationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(){
     private lateinit var bookDao: BookDao
+    private val arrayList: ArrayList<Book> = ArrayList()
 
     @RequiresApi(Build.VERSION_CODES.O)
     val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -41,7 +48,7 @@ class MainActivity : AppCompatActivity() {
 
         val db = Room.databaseBuilder(
             applicationContext, BookDatabase::class.java, "book_database"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
         bookDao = db.bookDao()
 //        testDB()
     }
@@ -63,7 +70,7 @@ class MainActivity : AppCompatActivity() {
             for (book in books) {
                 Log.i(
                     "MyTAG",
-                    "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.time}"
+                    "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.created_at}"
                 )
             }
         }
@@ -89,9 +96,11 @@ class MainActivity : AppCompatActivity() {
             for (book in books) {
                 Log.i(
                     "MyTAG",
-                    "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.time}"
+                    "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.created_at}"
                 )
+                arrayList.add(book)
             }
+
         }
     }
 
@@ -109,4 +118,38 @@ class MainActivity : AppCompatActivity() {
             startService(this)
         }
     }
+
+    private fun saveTrackingDetails(stringJson:String) = try {
+        val request = object : StringRequest(Request.Method.POST, "https://timekompas.com/api/shyam/save-live-location-test",
+            Response.Listener {
+                android.util.Log.e("TAG111", "saveTrackingDetails: ${it.toString()}" )
+        }, Response.ErrorListener {
+                android.util.Log.e("TAG111", "saveTrackingDetails: ${it.toString()}" )
+        }) {
+            override fun getParams(): Map<String, String>? {
+                val param = HashMap<String, String>()
+                param["list"] = stringJson
+                param["emp_id"] = "1234"
+                Log.e("TAG111", "getParams: $param")
+                return param
+            }
+        }
+        request.retryPolicy = DefaultRetryPolicy(
+            10000, DefaultRetryPolicy.DEFAULT_MAX_RETRIES, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+        )
+        val requestQueue = Volley.newRequestQueue(this)
+        requestQueue.add(request)
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+
+    fun saveDataIntoServer(view: View) {
+        val gson = Gson()
+        val stringJson = gson.toJson(arrayList)
+        Log.e("TAG111", "arrayList: ${arrayList.size}")
+        Log.e("TAG111", "stringJson: $stringJson")
+
+        saveTrackingDetails(stringJson)
+    }
+
 }
