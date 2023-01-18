@@ -120,7 +120,8 @@ class MainActivity : AppCompatActivity(){
     }
 
     private fun saveTrackingDetails(stringJson:String) = try {
-        val request = object : StringRequest(Request.Method.POST, "https://timekompas.com/api/shyam/save-live-location-test",
+        //https://tk.com/api/shyam/save-live-location-test
+        val request = object : StringRequest(Request.Method.POST, "url",
             Response.Listener {
                 android.util.Log.e("TAG111", "saveTrackingDetails: ${it.toString()}" )
         }, Response.ErrorListener {
