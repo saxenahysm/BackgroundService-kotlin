@@ -1,29 +1,39 @@
 package com.shyam.roomdbexample
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
+import android.content.IntentSender.SendIntentException
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
 import com.android.volley.DefaultRetryPolicy
-import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
+import com.google.android.gms.common.api.GoogleApiClient
+import com.google.android.gms.common.api.PendingResult
+import com.google.android.gms.common.api.ResultCallback
+import com.google.android.gms.common.api.Status
+import com.google.android.gms.location.*
 import com.google.gson.Gson
 import com.shyam.roomdbexample.UtilsForBG.LocationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import android.location.LocationManager as LocationManager1
 
-class MainActivity : AppCompatActivity(){
+
+class MainActivity : AppCompatActivity() {
     private lateinit var bookDao: BookDao
     private val arrayList: ArrayList<Book> = ArrayList()
 
@@ -33,40 +43,37 @@ class MainActivity : AppCompatActivity(){
     @RequiresApi(Build.VERSION_CODES.O)
     val current: String = LocalDateTime.now().format(formatter)
 
-    
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        this.setFinishOnTouchOutside(true)
         ActivityCompat.requestPermissions(
             this, arrayOf(
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_FINE_LOCATION,
             ), 0
         )
-
-
         val db = Room.databaseBuilder(
             applicationContext, BookDatabase::class.java, "book_database"
         ).fallbackToDestructiveMigration().build()
         bookDao = db.bookDao()
-//        testDB()
+        //testDB()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun testDB() {
-
         lifecycleScope.launch(Dispatchers.IO) {
             //Insert
-            Log.i("MyTAG", "*****     Inserting 3 Books     **********")
+            Log.i("MyTAG", "*****     Inserting 3 ITEMs     **********")
             bookDao.insertBook(Book(0, "Java", "Alex", current))
             bookDao.insertBook(Book(0, "PHP", "Mike", current))
             bookDao.insertBook(Book(0, "Kotlin", "Amelia", current))
-            Log.i("MyTAG", "*****     Inserted 3 Books       **********")
-
+            Log.i("MyTAG", "*****     Inserted 3 ITEMs       **********")
             //Query
             val books = bookDao.getAllBook()
-            Log.i("MyTAG", "*****   ${books.size} books there *****")
+            Log.i("MyTAG", "*****   ${books.size} ITEMs there *****")
             for (book in books) {
                 Log.i(
                     "MyTAG",
@@ -80,19 +87,24 @@ class MainActivity : AppCompatActivity(){
     fun insertData(view: View) {
         lifecycleScope.launch(Dispatchers.IO) {
             //Insert
-            Log.i("MyTAG", "*****     Inserting 3 Books     **********")
+            Log.i("MyTAG", "*****     Inserting 3 ITEMs     **********")
             bookDao.insertBook(Book(0, "Java", "Alex", current))
             bookDao.insertBook(Book(0, "PHP", "Mike", current))
             bookDao.insertBook(Book(0, "Kotlin", "Amelia", current))
-            Log.i("MyTAG", "*****     Inserted 3 Books       **********")
+            Log.i("MyTAG", "*****     Inserted 3 ITEMs       **********")
         }
     }
 
     fun getAllData(view: View) {
+        getData()
+    }
+
+    fun getData() {
+        arrayList.clear()
         lifecycleScope.launch(Dispatchers.IO) {
             //Query
             val books = bookDao.getAllBook()
-            Log.i("MyTAG", "*****   ${books.size} books there *****")
+            Log.i("MyTAG", "*****   ${books.size} ITEMs there *****")
             for (book in books) {
                 Log.i(
                     "MyTAG",
@@ -104,12 +116,21 @@ class MainActivity : AppCompatActivity(){
         }
     }
 
+    fun deleteAllData() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val books = bookDao.deleteAllBook()
+            Log.i("MyTAG", "*****   $books ITEMs there *****")
+        }
+        Toast.makeText(this,"History cleared...`:)",Toast.LENGTH_LONG).show()
+    }
+
     fun stopService(view: View) {
 
         Intent(applicationContext, LocationService::class.java).apply {
             action = LocationService.ACTION_STOP
             startService(this)
         }
+        Toast.makeText(this, "Stopped", Toast.LENGTH_LONG).show()
     }
 
     fun startService(view: View) {
@@ -117,19 +138,27 @@ class MainActivity : AppCompatActivity(){
             action = LocationService.ACTION_START
             startService(this)
         }
+        Toast.makeText(this, "Tracking-started", Toast.LENGTH_LONG).show()
     }
 
     private fun saveTrackingDetails(stringJson:String) = try {
-        val request = object : StringRequest(Request.Method.POST, "https://timekompas.com/api/shyam/save-live-location-test",
+        val request = object : StringRequest(Method.POST,"url",
             Response.Listener {
-                android.util.Log.e("TAG111", "saveTrackingDetails: ${it.toString()}" )
-        }, Response.ErrorListener {
-                android.util.Log.e("TAG111", "saveTrackingDetails: ${it.toString()}" )
-        }) {
-            override fun getParams(): Map<String, String>? {
+                val jsonObject = JSONObject(it)
+                Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
+                Log.e("TAG111", "saveTrackingDetails: $it")
+                //delete
+                deleteAllData()
+            },
+            Response.ErrorListener {
+                android.widget.Toast.makeText(this, it.message, android.widget.Toast.LENGTH_LONG)
+                    .show()
+                Log.e("TAG111", "saveTrackingDetails: $it")
+            }) {
+            override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
                 param["list"] = stringJson
-                param["emp_id"] = "1234"
+                param["emp_id"] = "11409"
                 Log.e("TAG111", "getParams: $param")
                 return param
             }
@@ -148,8 +177,70 @@ class MainActivity : AppCompatActivity(){
         val stringJson = gson.toJson(arrayList)
         Log.e("TAG111", "arrayList: ${arrayList.size}")
         Log.e("TAG111", "stringJson: $stringJson")
-
-        saveTrackingDetails(stringJson)
+        if (arrayList.size>0) {
+            saveTrackingDetails(stringJson)
+        }else{
+            Toast.makeText(this,"No records to save",Toast.LENGTH_LONG).show()
+        }
     }
 
+    ///---------------
+
+    private var googleApiClient: GoogleApiClient? = null
+    val REQUEST_LOCATION = 199
+
+    private fun hasGPSDevice(context: Context): Boolean {
+        val mgr = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager1
+        val providers = mgr.allProviders
+        return providers.contains(LocationManager1.GPS_PROVIDER)
+    }
+
+    private fun enableLoc() {
+        if (googleApiClient == null) {
+            googleApiClient =
+                GoogleApiClient.Builder(this@MainActivity).addApi(LocationServices.API)
+                    .addConnectionCallbacks(object : GoogleApiClient.ConnectionCallbacks {
+                        override fun onConnected(bundle: Bundle?) {}
+                        override fun onConnectionSuspended(i: Int) {
+                            googleApiClient!!.connect()
+                        }
+                    }).addOnConnectionFailedListener { connectionResult ->
+                        Log.d(
+                            "Location error", "Location error " + connectionResult.errorCode
+                        )
+                    }.build()
+            googleApiClient!!.connect()
+            val locationRequest = LocationRequest.create()
+            locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            locationRequest.interval = 30 * 1000
+            locationRequest.fastestInterval = 5 * 1000
+            val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+            builder.setAlwaysShow(true)
+            val result: PendingResult<LocationSettingsResult> =
+                LocationServices.SettingsApi.checkLocationSettings(
+                    googleApiClient!!, builder.build()
+                )
+            result.setResultCallback(object : ResultCallback<LocationSettingsResult?> {
+                override fun onResult(result: LocationSettingsResult) {
+                    val status: Status = result.status
+                    when (status.statusCode) {
+                        LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> try {
+                            // Show the dialog by calling startResolutionForResult(),
+                            // and check the result in onActivityResult().
+                            status.startResolutionForResult(
+                                this@MainActivity, REQUEST_LOCATION
+                            )
+                            finish()
+                        } catch (e: SendIntentException) {
+                            // Ignore the error.
+                        }
+                    }
+                }
+            })
+        }
+    }
+
+    fun deleteAllData(view: View) {
+        deleteAllData()
+    }
 }

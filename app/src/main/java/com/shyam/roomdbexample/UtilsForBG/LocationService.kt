@@ -62,13 +62,12 @@ class LocationService : Service() {
                 .setOngoing(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        locationClient.getLocationUpdates(500L).catch { e -> e.printStackTrace() }
+        locationClient.getLocationUpdates(1000L).catch { e -> e.printStackTrace() }
             .onEach { location ->
                 val lat = location.latitude.toString()
                 val lng = location.longitude.toString()
                 val updatedNotification = notification.setContentText("Location: ($lat,$lng)")
                 notificationManager.notify(1, updatedNotification.build())
-                Log.e("TAG111111", "lat--- $lat : lng--- $lng")
                 insertData(lat, lng)
             }.launchIn(serviceScope)
 
@@ -85,7 +84,6 @@ class LocationService : Service() {
         //Insert
         Log.i("MyTAG", "lat-- $lat \t lng---$lng current--$current")
         bookDao.insertBook(Book(0, lat, lng, current))
-        Log.i("MyTAG", "*****     Inserted      **********")
     }
 
     companion object {
