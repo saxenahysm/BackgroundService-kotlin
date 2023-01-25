@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender.SendIntentException
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -34,6 +35,7 @@ import android.location.LocationManager as LocationManager1
 
 
 class MainActivity : AppCompatActivity() {
+
     private lateinit var bookDao: BookDao
     private val arrayList: ArrayList<Book> = ArrayList()
 
@@ -48,18 +50,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        this.setFinishOnTouchOutside(true)
-        ActivityCompat.requestPermissions(
-            this, arrayOf(
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_FINE_LOCATION,
-            ), 0
-        )
         val db = Room.databaseBuilder(
             applicationContext, BookDatabase::class.java, "book_database"
         ).fallbackToDestructiveMigration().build()
         bookDao = db.bookDao()
         //testDB()
+        if (checkPermissions()) enableLoc()
+        else requestPermissions()
+
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -121,7 +119,7 @@ class MainActivity : AppCompatActivity() {
             val books = bookDao.deleteAllBook()
             Log.i("MyTAG", "*****   $books ITEMs there *****")
         }
-        Toast.makeText(this,"History cleared...`:)",Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "History cleared...`:)", Toast.LENGTH_LONG).show()
     }
 
     fun stopService(view: View) {
@@ -141,20 +139,17 @@ class MainActivity : AppCompatActivity() {
         Toast.makeText(this, "Tracking-started", Toast.LENGTH_LONG).show()
     }
 
-    private fun saveTrackingDetails(stringJson:String) = try {
-        val request = object : StringRequest(Method.POST,"url",
-            Response.Listener {
-                val jsonObject = JSONObject(it)
-                Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
-                Log.e("TAG111", "saveTrackingDetails: $it")
-                //delete
-                deleteAllData()
-            },
-            Response.ErrorListener {
-                android.widget.Toast.makeText(this, it.message, android.widget.Toast.LENGTH_LONG)
-                    .show()
-                Log.e("TAG111", "saveTrackingDetails: $it")
-            }) {
+    private fun saveTrackingDetails(stringJson: String) = try {
+        val request = object : StringRequest(Method.POST, "url", Response.Listener {
+            val jsonObject = JSONObject(it)
+            Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
+            Log.e("TAG111", "saveTrackingDetails: $it")
+            //delete
+            deleteAllData()
+        }, Response.ErrorListener {
+            android.widget.Toast.makeText(this, it.message, android.widget.Toast.LENGTH_LONG).show()
+            Log.e("TAG111", "saveTrackingDetails: $it")
+        }) {
             override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
                 param["list"] = stringJson
@@ -177,10 +172,10 @@ class MainActivity : AppCompatActivity() {
         val stringJson = gson.toJson(arrayList)
         Log.e("TAG111", "arrayList: ${arrayList.size}")
         Log.e("TAG111", "stringJson: $stringJson")
-        if (arrayList.size>0) {
+        if (arrayList.size > 0) {
             saveTrackingDetails(stringJson)
-        }else{
-            Toast.makeText(this,"No records to save",Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, "No records to save", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -200,20 +195,23 @@ class MainActivity : AppCompatActivity() {
             googleApiClient =
                 GoogleApiClient.Builder(this@MainActivity).addApi(LocationServices.API)
                     .addConnectionCallbacks(object : GoogleApiClient.ConnectionCallbacks {
-                        override fun onConnected(bundle: Bundle?) {}
+                        override fun onConnected(bundle: Bundle?) {
+                            Log.e("TAG11", "onConnected: " )
+
+                        }
                         override fun onConnectionSuspended(i: Int) {
                             googleApiClient!!.connect()
+                            Log.e("TAG11", "onConnectionSuspended: " )
                         }
                     }).addOnConnectionFailedListener { connectionResult ->
-                        Log.d(
-                            "Location error", "Location error " + connectionResult.errorCode
-                        )
+                        Log.d("Location error", "Location error " + connectionResult.errorCode)
                     }.build()
             googleApiClient!!.connect()
             val locationRequest = LocationRequest.create()
             locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
             locationRequest.interval = 30 * 1000
             locationRequest.fastestInterval = 5 * 1000
+
             val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
             builder.setAlwaysShow(true)
             val result: PendingResult<LocationSettingsResult> =
@@ -227,10 +225,8 @@ class MainActivity : AppCompatActivity() {
                         LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> try {
                             // Show the dialog by calling startResolutionForResult(),
                             // and check the result in onActivityResult().
-                            status.startResolutionForResult(
-                                this@MainActivity, REQUEST_LOCATION
-                            )
-                            finish()
+                            Log.e("TAG11", "onResult: " )
+                            status.startResolutionForResult(this@MainActivity, REQUEST_LOCATION)
                         } catch (e: SendIntentException) {
                             // Ignore the error.
                         }
@@ -242,5 +238,37 @@ class MainActivity : AppCompatActivity() {
 
     fun deleteAllData(view: View) {
         deleteAllData()
+    }
+
+    private fun checkPermissions(): Boolean {
+        if (ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            return true
+        }
+        return false
+    }
+
+    private fun requestPermissions() {
+        ActivityCompat.requestPermissions(
+            this, arrayOf(
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+            ), 0
+        )
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 0) {
+            if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                Toast.makeText(this, "", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }
