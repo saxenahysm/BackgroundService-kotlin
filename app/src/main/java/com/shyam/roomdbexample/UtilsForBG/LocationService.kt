@@ -55,7 +55,6 @@ class LocationService : Service() {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun start() {
         val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-        current = LocalDateTime.now().format(formatter)
         val notification =
             NotificationCompat.Builder(this, "location").setContentText("Location:null")
                 .setContentTitle("Track-location-Test").setSmallIcon(R.mipmap.ic_launcher)
@@ -66,6 +65,7 @@ class LocationService : Service() {
             .onEach { location ->
                 val lat = location.latitude.toString()
                 val lng = location.longitude.toString()
+                current = LocalDateTime.now().format(formatter)
                 val updatedNotification = notification.setContentText("Location: ($lat,$lng)")
                 notificationManager.notify(1, updatedNotification.build())
                 insertData(lat, lng)

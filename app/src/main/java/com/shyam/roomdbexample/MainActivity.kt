@@ -140,7 +140,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveTrackingDetails(stringJson: String) = try {
-        val request = object : StringRequest(Method.POST, "url", Response.Listener {
+        val request = object : StringRequest(Method.POST, resources.getString(R.string.url), Response.Listener {
             val jsonObject = JSONObject(it)
             Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
             Log.e("TAG111", "saveTrackingDetails: $it")
