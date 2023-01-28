@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         ).fallbackToDestructiveMigration().build()
         bookDao = db.bookDao()
         //testDB()
-        if (checkPermissions()) enableLoc()
+        if (checkPermissions()) //enableLoc()
         else requestPermissions()
 
     }
