@@ -11,9 +11,9 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.room.Room
 import com.google.android.gms.location.LocationServices
-import com.shyam.roomdbexample.Book
-import com.shyam.roomdbexample.BookDao
-import com.shyam.roomdbexample.BookDatabase
+import com.shyam.roomdbexample.RoomDB.book.Book
+import com.shyam.roomdbexample.RoomDB.book.BookDao
+import com.shyam.roomdbexample.RoomDB.BookDatabase
 import com.shyam.roomdbexample.R
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
@@ -55,17 +55,18 @@ class LocationService : Service() {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun start() {
         val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-        current = LocalDateTime.now().format(formatter)
         val notification =
             NotificationCompat.Builder(this, "location").setContentText("Location:null")
                 .setContentTitle("Track-location-Test").setSmallIcon(R.mipmap.ic_launcher)
                 .setOngoing(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        locationClient.getLocationUpdates(1000L).catch { e -> e.printStackTrace() }
+        locationClient.getLocationUpdates(500L).catch { e -> e.printStackTrace() }
             .onEach { location ->
                 val lat = location.latitude.toString()
                 val lng = location.longitude.toString()
+                current = LocalDateTime.now().format(formatter)
+                Log.e("TAG11111", "$location time: ${location.time}  current: $current \t " )
                 val updatedNotification = notification.setContentText("Location: ($lat,$lng)")
                 notificationManager.notify(1, updatedNotification.build())
                 insertData(lat, lng)
@@ -82,7 +83,6 @@ class LocationService : Service() {
     @RequiresApi(Build.VERSION_CODES.O)
     fun insertData(lat: String, lng: String) {
         //Insert
-        Log.i("MyTAG", "lat-- $lat \t lng---$lng current--$current")
         bookDao.insertBook(Book(0, lat, lng, current))
     }
 

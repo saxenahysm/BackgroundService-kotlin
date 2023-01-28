@@ -25,6 +25,11 @@ import com.google.android.gms.common.api.ResultCallback
 import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.*
 import com.google.gson.Gson
+import com.shyam.roomdbexample.RoomDB.BookDatabase
+import com.shyam.roomdbexample.RoomDB.book.Book
+import com.shyam.roomdbexample.RoomDB.book.BookDao
+import com.shyam.roomdbexample.RoomDB.user.User
+import com.shyam.roomdbexample.RoomDB.user.UserDAO
 import com.shyam.roomdbexample.UtilsForBG.LocationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,6 +41,7 @@ import android.location.LocationManager as LocationManager1
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var userDAO: UserDAO
     private lateinit var bookDao: BookDao
     private val arrayList: ArrayList<Book> = ArrayList()
 
@@ -53,33 +59,13 @@ class MainActivity : AppCompatActivity() {
         val db = Room.databaseBuilder(
             applicationContext, BookDatabase::class.java, "book_database"
         ).fallbackToDestructiveMigration().build()
+        userDAO = db.userDao()
         bookDao = db.bookDao()
         //testDB()
         if (checkPermissions()) enableLoc()
         else requestPermissions()
-
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun testDB() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            //Insert
-            Log.i("MyTAG", "*****     Inserting 3 ITEMs     **********")
-            bookDao.insertBook(Book(0, "Java", "Alex", current))
-            bookDao.insertBook(Book(0, "PHP", "Mike", current))
-            bookDao.insertBook(Book(0, "Kotlin", "Amelia", current))
-            Log.i("MyTAG", "*****     Inserted 3 ITEMs       **********")
-            //Query
-            val books = bookDao.getAllBook()
-            Log.i("MyTAG", "*****   ${books.size} ITEMs there *****")
-            for (book in books) {
-                Log.i(
-                    "MyTAG",
-                    "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.created_at}"
-                )
-            }
-        }
-    }
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun insertData(view: View) {
@@ -87,9 +73,6 @@ class MainActivity : AppCompatActivity() {
             //Insert
             Log.i("MyTAG", "*****     Inserting 3 ITEMs     **********")
             bookDao.insertBook(Book(0, "Java", "Alex", current))
-            bookDao.insertBook(Book(0, "PHP", "Mike", current))
-            bookDao.insertBook(Book(0, "Kotlin", "Amelia", current))
-            Log.i("MyTAG", "*****     Inserted 3 ITEMs       **********")
         }
     }
 
@@ -101,8 +84,11 @@ class MainActivity : AppCompatActivity() {
         arrayList.clear()
         lifecycleScope.launch(Dispatchers.IO) {
             //Query
+            userDAO.insertUser(User(0, "Shyam-"))
             val books = bookDao.getAllBook()
-            Log.i("MyTAG", "*****   ${books.size} ITEMs there *****")
+            val users = userDAO.getAllUsers()
+            Log.i("MyTAG", "*****   ${users.size} users there *****")
+            Log.i("MyTAG", "*****   ${books.size} books there *****")
             for (book in books) {
                 Log.i(
                     "MyTAG",
@@ -110,13 +96,20 @@ class MainActivity : AppCompatActivity() {
                 )
                 arrayList.add(book)
             }
-
+            for (user in users) {
+                Log.i(
+                    "MyTAG",
+                    "id: ${user.id} latitude: ${user.name}"
+                )
+            }
         }
     }
 
     fun deleteAllData() {
         lifecycleScope.launch(Dispatchers.IO) {
+            val user = userDAO.deleteUser()
             val books = bookDao.deleteAllBook()
+            Log.i("MyTAG", "*****   $user ITEMs there *****")
             Log.i("MyTAG", "*****   $books ITEMs there *****")
         }
         Toast.makeText(this, "History cleared...`:)", Toast.LENGTH_LONG).show()
@@ -140,16 +133,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveTrackingDetails(stringJson: String) = try {
-        val request = object : StringRequest(Method.POST, "url", Response.Listener {
-            val jsonObject = JSONObject(it)
-            Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
-            Log.e("TAG111", "saveTrackingDetails: $it")
-            //delete
-            deleteAllData()
-        }, Response.ErrorListener {
-            android.widget.Toast.makeText(this, it.message, android.widget.Toast.LENGTH_LONG).show()
-            Log.e("TAG111", "saveTrackingDetails: $it")
-        }) {
+        val request = object : StringRequest(Method.POST,
+            "https://timekompas.com/api/shyam/save-live-location-test",
+            Response.Listener {
+                val jsonObject = JSONObject(it)
+                Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
+                Log.e("TAG111", "saveTrackingDetails: $it")
+                //delete
+                deleteAllData()
+            },
+            Response.ErrorListener {
+                android.widget.Toast.makeText(this, it.message, android.widget.Toast.LENGTH_LONG)
+                    .show()
+                Log.e("TAG111", "saveTrackingDetails: $it")
+            }) {
             override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
                 param["list"] = stringJson
@@ -209,7 +206,7 @@ class MainActivity : AppCompatActivity() {
             googleApiClient!!.connect()
             val locationRequest = LocationRequest.create()
             locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            locationRequest.interval = 30 * 1000
+            locationRequest.interval = 30 * 100
             locationRequest.fastestInterval = 5 * 1000
 
             val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
@@ -268,6 +265,8 @@ class MainActivity : AppCompatActivity() {
         if (requestCode == 0) {
             if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
                 Toast.makeText(this, "", Toast.LENGTH_LONG).show()
+            } else {
+                Toast.makeText(this, "Denied", Toast.LENGTH_LONG).show()
             }
         }
     }
