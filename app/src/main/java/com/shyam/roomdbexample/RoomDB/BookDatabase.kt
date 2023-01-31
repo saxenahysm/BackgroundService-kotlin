@@ -7,7 +7,7 @@ import com.shyam.roomdbexample.RoomDB.book.BookDao
 import com.shyam.roomdbexample.RoomDB.user.User
 import com.shyam.roomdbexample.RoomDB.user.UserDAO
 
-@Database(entities = [Book::class,User::class], version = 3)
+@Database(entities = [Book::class,User::class], version = 4)
 abstract class BookDatabase : RoomDatabase() {
 
     abstract fun bookDao(): BookDao

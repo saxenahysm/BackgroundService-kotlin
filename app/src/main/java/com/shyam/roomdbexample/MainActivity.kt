@@ -62,8 +62,9 @@ class MainActivity : AppCompatActivity() {
         userDAO = db.userDao()
         bookDao = db.bookDao()
         //testDB()
-        if (checkPermissions()) enableLoc()
-        else requestPermissions()
+//        if (checkPermissions()) enableLoc()
+//        else requestPermissions()
+        requestPermissions()
     }
 
 
@@ -134,13 +135,17 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveTrackingDetails(stringJson: String) = try {
         val request = object : StringRequest(Method.POST,
-            "https://timekompas.com/api/shyam/save-live-location-test",
+            resources.getString(R.string.url),
             Response.Listener {
-                val jsonObject = JSONObject(it)
-                Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
-                Log.e("TAG111", "saveTrackingDetails: $it")
-                //delete
-                deleteAllData()
+                try {
+                    val jsonObject = JSONObject(it)
+                    Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
+                    Log.e("TAG111", "saveTrackingDetails: $it")
+                    if (jsonObject.getString("status").equals(true)) {
+                        deleteAllData()
+                    }
+                } catch (e: Exception) {
+                }
             },
             Response.ErrorListener {
                 android.widget.Toast.makeText(this, it.message, android.widget.Toast.LENGTH_LONG)
@@ -150,7 +155,7 @@ class MainActivity : AppCompatActivity() {
             override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
                 param["list"] = stringJson
-                param["emp_id"] = "11409"
+                param["emp_id"] = "12"
                 Log.e("TAG111", "getParams: $param")
                 return param
             }
@@ -206,8 +211,8 @@ class MainActivity : AppCompatActivity() {
             googleApiClient!!.connect()
             val locationRequest = LocationRequest.create()
             locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            locationRequest.interval = 30 * 100
-            locationRequest.fastestInterval = 5 * 1000
+            locationRequest.interval = 3000
+            locationRequest.fastestInterval = 5000
 
             val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
             builder.setAlwaysShow(true)
@@ -234,7 +239,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun deleteAllData(view: View) {
-        deleteAllData()
+        //deleteAllData()
     }
 
     private fun checkPermissions(): Boolean {
