@@ -12,7 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.room.Room
 import com.google.android.gms.location.LocationServices
 import com.shyam.roomdbexample.R
-import com.shyam.roomdbexample.RoomDB.BookDatabase
+import com.shyam.roomdbexample.RoomDB.AppDatabase
 import com.shyam.roomdbexample.RoomDB.book.Book
 import com.shyam.roomdbexample.RoomDB.book.BookDao
 import kotlinx.coroutines.*
@@ -41,7 +41,7 @@ class LocationService : Service() {
             applicationContext, LocationServices.getFusedLocationProviderClient(applicationContext)
         )
         val db = Room.databaseBuilder(
-            applicationContext, BookDatabase::class.java, "book_database"
+            applicationContext, AppDatabase::class.java, "book_database"
         ).build()
         bookDao = db.bookDao()
     }
@@ -70,8 +70,8 @@ class LocationService : Service() {
                 val formatter: DateTimeFormatter =
                     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                 current = LocalDateTime.now().format(formatter)
-                val lat = location.latitude.toString()
-                val lng = location.longitude.toString()
+                val lat = location.latitude.toString().take(8)
+                val lng = location.longitude.toString().take(8)
                 val updatedNotification = notification.setContentText("Location: ($lat,$lng)")
                 notificationManager.notify(1, updatedNotification.build())
                 Log.e("TAG111", "$lat - $lng - $current" )

@@ -17,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
@@ -27,10 +29,9 @@ import com.google.android.gms.common.api.ResultCallback
 import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.*
 import com.google.gson.Gson
-import com.shyam.roomdbexample.RoomDB.BookDatabase
+import com.shyam.roomdbexample.RoomDB.AppDatabase
 import com.shyam.roomdbexample.RoomDB.book.Book
 import com.shyam.roomdbexample.RoomDB.book.BookDao
-import com.shyam.roomdbexample.RoomDB.user.User
 import com.shyam.roomdbexample.RoomDB.user.UserDAO
 import com.shyam.roomdbexample.UtilsForBG.LocationService
 import com.shyam.roomdbexample.UtilsForBG.MyBinder
@@ -60,14 +61,22 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val db = Room.databaseBuilder(
-            applicationContext, BookDatabase::class.java, "book_database"
-        ).fallbackToDestructiveMigration().build()
+            applicationContext, AppDatabase::class.java, "book_database"
+        ).addMigrations(MIGRATION_1_2, MIGRATION_3_4).build()
         userDAO = db.userDao()
         bookDao = db.bookDao()
         //testDB()
-        if (checkPermissions()) enableLoc()
-        else requestPermissions()
-        Log.e("TAG11111 \t onCreate", Thread.currentThread().name)
+        if (checkPermissions()) enableLoc() else requestPermissions()
+    }
+
+    val MIGRATION_1_2: Migration = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+        }
+    }
+
+    val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+        }
     }
 
     private val m_serviceConnection: ServiceConnection = object : ServiceConnection {
@@ -150,7 +159,7 @@ class MainActivity : AppCompatActivity() {
             override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
                 param["list"] = stringJson
-                param["emp_id"] = "11409"
+                param["emp_id"] = "33835"
                 Log.e("TAG111", "getParams: $param")
                 return param
             }
