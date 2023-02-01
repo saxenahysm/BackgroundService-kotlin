@@ -11,10 +11,10 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.room.Room
 import com.google.android.gms.location.LocationServices
+import com.shyam.roomdbexample.R
+import com.shyam.roomdbexample.RoomDB.BookDatabase
 import com.shyam.roomdbexample.RoomDB.book.Book
 import com.shyam.roomdbexample.RoomDB.book.BookDao
-import com.shyam.roomdbexample.RoomDB.BookDatabase
-import com.shyam.roomdbexample.R
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -24,14 +24,18 @@ import java.time.format.DateTimeFormatter
 
 class LocationService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val serviceScopeForRomm = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var locationClient: LocationClient
     private lateinit var bookDao: BookDao
     lateinit var current: String
+    var strStatus: String = "Null";
     override fun onBind(p0: Intent?): IBinder? {
         return null
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
+        strStatus = "onCreate";
         super.onCreate()
         locationClient = DefaultLocationClient(
             applicationContext, LocationServices.getFusedLocationProviderClient(applicationContext)
@@ -48,30 +52,31 @@ class LocationService : Service() {
             ACTION_START -> start()
             ACTION_STOP -> stop()
         }
-        return super.onStartCommand(intent, flags, startId)
+        return START_STICKY
+//        return super.onStartCommand(intent, flags, startId)
     }
 
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun start() {
-        val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         val notification =
-            NotificationCompat.Builder(this, "location").setContentText("Location:null")
+            NotificationCompat.Builder(this, "location").setContentText("Location:$strStatus")
                 .setContentTitle("Track-location-Test").setSmallIcon(R.mipmap.ic_launcher)
                 .setOngoing(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        locationClient.getLocationUpdates(500L).catch { e -> e.printStackTrace() }
-            .onEach { location ->
+        locationClient.getLocationUpdates(2000L)
+            .catch { e -> Log.e("Tag11", "getLocationUpdates: ${e.message}") }.onEach { location ->
+                val formatter: DateTimeFormatter =
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                current = LocalDateTime.now().format(formatter)
                 val lat = location.latitude.toString()
                 val lng = location.longitude.toString()
-                current = LocalDateTime.now().format(formatter)
-                Log.e("TAG11111", "$location time: ${location.time}  current: $current \t " )
                 val updatedNotification = notification.setContentText("Location: ($lat,$lng)")
                 notificationManager.notify(1, updatedNotification.build())
+                Log.e("TAG111", "$lat - $lng - $current" )
                 insertData(lat, lng)
             }.launchIn(serviceScope)
-
         startForeground(1, notification.build())
     }
 
@@ -95,6 +100,7 @@ class LocationService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         serviceScope.cancel()
+        strStatus = "onDestroy";
     }
 }
 

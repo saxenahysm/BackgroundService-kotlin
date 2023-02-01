@@ -1,12 +1,14 @@
 package com.shyam.roomdbexample
 
 import android.Manifest
-import android.content.Context
+import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentSender.SendIntentException
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -31,12 +33,12 @@ import com.shyam.roomdbexample.RoomDB.book.BookDao
 import com.shyam.roomdbexample.RoomDB.user.User
 import com.shyam.roomdbexample.RoomDB.user.UserDAO
 import com.shyam.roomdbexample.UtilsForBG.LocationService
+import com.shyam.roomdbexample.UtilsForBG.MyBinder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import android.location.LocationManager as LocationManager1
 
 
 class MainActivity : AppCompatActivity() {
@@ -44,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var userDAO: UserDAO
     private lateinit var bookDao: BookDao
     private val arrayList: ArrayList<Book> = ArrayList()
+    var locationService = LocationService;
 
     @RequiresApi(Build.VERSION_CODES.O)
     val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -62,18 +65,19 @@ class MainActivity : AppCompatActivity() {
         userDAO = db.userDao()
         bookDao = db.bookDao()
         //testDB()
-//        if (checkPermissions()) enableLoc()
-//        else requestPermissions()
-        requestPermissions()
+        if (checkPermissions()) enableLoc()
+        else requestPermissions()
+        Log.e("TAG11111 \t onCreate", Thread.currentThread().name)
     }
 
+    private val m_serviceConnection: ServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            locationService = (service as MyBinder).getService()
+        }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun insertData(view: View) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            //Insert
-            Log.i("MyTAG", "*****     Inserting 3 ITEMs     **********")
-            bookDao.insertBook(Book(0, "Java", "Alex", current))
+        override fun onServiceDisconnected(className: ComponentName) {
+            Log.e("TAG111", "onServiceDisconnected: ")
+            //locationService = null
         }
     }
 
@@ -85,23 +89,13 @@ class MainActivity : AppCompatActivity() {
         arrayList.clear()
         lifecycleScope.launch(Dispatchers.IO) {
             //Query
-            userDAO.insertUser(User(0, "Shyam-"))
             val books = bookDao.getAllBook()
-            val users = userDAO.getAllUsers()
-            Log.i("MyTAG", "*****   ${users.size} users there *****")
-            Log.i("MyTAG", "*****   ${books.size} books there *****")
             for (book in books) {
                 Log.i(
                     "MyTAG",
                     "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.created_at}"
                 )
                 arrayList.add(book)
-            }
-            for (user in users) {
-                Log.i(
-                    "MyTAG",
-                    "id: ${user.id} latitude: ${user.name}"
-                )
             }
         }
     }
@@ -128,6 +122,7 @@ class MainActivity : AppCompatActivity() {
     fun startService(view: View) {
         Intent(applicationContext, LocationService::class.java).apply {
             action = LocationService.ACTION_START
+            bindService(intent, m_serviceConnection, BIND_AUTO_CREATE);
             startService(this)
         }
         Toast.makeText(this, "Tracking-started", Toast.LENGTH_LONG).show()
@@ -141,7 +136,7 @@ class MainActivity : AppCompatActivity() {
                     val jsonObject = JSONObject(it)
                     Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
                     Log.e("TAG111", "saveTrackingDetails: $it")
-                    if (jsonObject.getString("status").equals(true)) {
+                    if (jsonObject.getString("status").equals("true")) {
                         deleteAllData()
                     }
                 } catch (e: Exception) {
@@ -155,7 +150,7 @@ class MainActivity : AppCompatActivity() {
             override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
                 param["list"] = stringJson
-                param["emp_id"] = "12"
+                param["emp_id"] = "11409"
                 Log.e("TAG111", "getParams: $param")
                 return param
             }
@@ -181,16 +176,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    ///---------------
 
     private var googleApiClient: GoogleApiClient? = null
     val REQUEST_LOCATION = 199
-
-    private fun hasGPSDevice(context: Context): Boolean {
-        val mgr = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager1
-        val providers = mgr.allProviders
-        return providers.contains(LocationManager1.GPS_PROVIDER)
-    }
 
     private fun enableLoc() {
         if (googleApiClient == null) {
@@ -201,9 +189,10 @@ class MainActivity : AppCompatActivity() {
                             Log.e("TAG11", "onConnected: " )
 
                         }
+
                         override fun onConnectionSuspended(i: Int) {
                             googleApiClient!!.connect()
-                            Log.e("TAG11", "onConnectionSuspended: " )
+                            Log.e("TAG11", "onConnectionSuspended: ")
                         }
                     }).addOnConnectionFailedListener { connectionResult ->
                         Log.d("Location error", "Location error " + connectionResult.errorCode)
@@ -211,8 +200,8 @@ class MainActivity : AppCompatActivity() {
             googleApiClient!!.connect()
             val locationRequest = LocationRequest.create()
             locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            locationRequest.interval = 3000
-            locationRequest.fastestInterval = 5000
+            locationRequest.interval = 0
+            locationRequest.fastestInterval = 0
 
             val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
             builder.setAlwaysShow(true)
@@ -269,7 +258,7 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 0) {
             if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                Toast.makeText(this, "", Toast.LENGTH_LONG).show()
+                enableLoc()
             } else {
                 Toast.makeText(this, "Denied", Toast.LENGTH_LONG).show()
             }
