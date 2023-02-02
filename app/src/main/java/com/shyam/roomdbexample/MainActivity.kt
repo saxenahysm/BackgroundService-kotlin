@@ -82,11 +82,12 @@ class MainActivity : AppCompatActivity() {
     private val m_serviceConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
             locationService = (service as MyBinder).getService()
+            Log.e("TAG", "onServiceConnected: " )
         }
 
         override fun onServiceDisconnected(className: ComponentName) {
             Log.e("TAG111", "onServiceDisconnected: ")
-            //locationService = null
+            locationService = null!!
         }
     }
 
@@ -94,7 +95,7 @@ class MainActivity : AppCompatActivity() {
         getData()
     }
 
-    fun getData() {
+    private fun getData() {
         arrayList.clear()
         lifecycleScope.launch(Dispatchers.IO) {
             //Query
@@ -158,8 +159,8 @@ class MainActivity : AppCompatActivity() {
             }) {
             override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
+                param["emp_id"] = "11409"
                 param["list"] = stringJson
-                param["emp_id"] = "33835"
                 Log.e("TAG111", "getParams: $param")
                 return param
             }
@@ -184,7 +185,6 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "No records to save", Toast.LENGTH_LONG).show()
         }
     }
-
 
     private var googleApiClient: GoogleApiClient? = null
     val REQUEST_LOCATION = 199
@@ -237,7 +237,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun deleteAllData(view: View) {
-        //deleteAllData()
+
+        Intent(applicationContext, LocationService::class.java).apply {
+            action = LocationService.ACTION_RESTART
+            startService(this)
+        }
+        Toast.makeText(this, "Stopped", Toast.LENGTH_LONG).show()
     }
 
     private fun checkPermissions(): Boolean {

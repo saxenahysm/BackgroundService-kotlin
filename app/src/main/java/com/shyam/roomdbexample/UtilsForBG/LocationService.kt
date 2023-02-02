@@ -35,7 +35,6 @@ class LocationService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
-        strStatus = "onCreate";
         super.onCreate()
         locationClient = DefaultLocationClient(
             applicationContext, LocationServices.getFusedLocationProviderClient(applicationContext)
@@ -50,39 +49,51 @@ class LocationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> start()
-            ACTION_STOP -> stop()
+            ACTION_STOP -> stop(true)
+            ACTION_RESTART -> stop(false)
         }
         return START_STICKY
 //        return super.onStartCommand(intent, flags, startId)
     }
 
-
     @RequiresApi(Build.VERSION_CODES.O)
     private fun start() {
+        startForegroundService()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun startForegroundService() {
         val notification =
             NotificationCompat.Builder(this, "location").setContentText("Location:$strStatus")
                 .setContentTitle("Track-location-Test").setSmallIcon(R.mipmap.ic_launcher)
                 .setOngoing(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        locationClient.getLocationUpdates(2000L)
+        locationClient.getLocationUpdates(0)
             .catch { e -> Log.e("Tag11", "getLocationUpdates: ${e.message}") }.onEach { location ->
                 val formatter: DateTimeFormatter =
                     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                 current = LocalDateTime.now().format(formatter)
-                val lat = location.latitude.toString().take(8)
-                val lng = location.longitude.toString().take(8)
+                val lat = location.latitude.toString()
+                val lng = location.longitude.toString()
                 val updatedNotification = notification.setContentText("Location: ($lat,$lng)")
                 notificationManager.notify(1, updatedNotification.build())
-                Log.e("TAG111", "$lat - $lng - $current" )
+                Log.e("TAG", "$lat - $lng - $current")
                 insertData(lat, lng)
             }.launchIn(serviceScope)
         startForeground(1, notification.build())
     }
 
-    private fun stop() {
-        stopForeground(true)
-        stopSelf()
+    var flagStopService: Boolean = false
+
+    private fun stop(isTrue: Boolean) {
+        flagStopService = isTrue
+
+        Log.e("tag111", "$isTrue stop: $flagStopService")
+        if (flagStopService) {
+            stopForeground(true)
+            stopSelf()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -94,13 +105,24 @@ class LocationService : Service() {
     companion object {
         const val ACTION_START = "ACTION_START"
         const val ACTION_STOP = "ACTION_STOP"
+        const val ACTION_RESTART = "ACTION_RESTART"
 
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onDestroy() {
-        super.onDestroy()
-        serviceScope.cancel()
+        if (flagStopService) {
+            stopForeground(true)
+            stopSelf()
+            serviceScope.cancel()
+            Log.e("tag111", "onDestroy:-----true ")
+        } else {
+//            serviceScope.cancel()
+            startForegroundService()
+            Log.e("tag", "onDestroy: false ")
+        }
         strStatus = "onDestroy";
+        super.onDestroy()
     }
 }
 
