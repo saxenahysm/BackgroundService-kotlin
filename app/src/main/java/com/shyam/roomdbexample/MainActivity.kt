@@ -208,7 +208,7 @@ class MainActivity : AppCompatActivity() {
                     }.build()
             googleApiClient!!.connect()
             val locationRequest = LocationRequest.create()
-            locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+            locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
             locationRequest.interval = 0
             locationRequest.fastestInterval = 0
 
@@ -242,7 +242,7 @@ class MainActivity : AppCompatActivity() {
             action = LocationService.ACTION_RESTART
             startService(this)
         }
-        Toast.makeText(this, "Stopped", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, "", Toast.LENGTH_LONG).show()
     }
 
     private fun checkPermissions(): Boolean {

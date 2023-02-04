@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.onEach
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+
 class LocationService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val serviceScopeForRomm = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -29,13 +30,16 @@ class LocationService : Service() {
     private lateinit var bookDao: BookDao
     lateinit var current: String
     var strStatus: String = "Null";
+    lateinit var context: Context
     override fun onBind(p0: Intent?): IBinder? {
+        Log.e("TAG", "Service Binding: ")
         return null
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
         super.onCreate()
+        context = applicationContext
         locationClient = DefaultLocationClient(
             applicationContext, LocationServices.getFusedLocationProviderClient(applicationContext)
         )
@@ -53,7 +57,6 @@ class LocationService : Service() {
             ACTION_RESTART -> stop(false)
         }
         return START_STICKY
-//        return super.onStartCommand(intent, flags, startId)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -69,7 +72,7 @@ class LocationService : Service() {
                 .setOngoing(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        locationClient.getLocationUpdates(0)
+        locationClient.getLocationUpdates(500L)
             .catch { e -> Log.e("Tag11", "getLocationUpdates: ${e.message}") }.onEach { location ->
                 val formatter: DateTimeFormatter =
                     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
