@@ -2,7 +2,11 @@
 
 Room Database example with kotlin coroutines.
 
-Get the current location form device in foreground and background and save the data into local `Room-DB`
+ - Get the current location form device in foreground and background and save the data into local `Room-DB`
+ - Create a Map Screen and draw a polyline using the local data (lat,lng)
+ 
+ Happy Coding...  :)
+
 
 
 ![demo2](https://user-images.githubusercontent.com/59280494/216937600-2d378751-0b70-4d16-97ae-2959cbc5cefb.jpg)
