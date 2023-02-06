@@ -72,7 +72,7 @@ class LocationService : Service() {
                 .setOngoing(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        locationClient.getLocationUpdates(500L)
+        locationClient.getLocationUpdates(1000L)
             .catch { e -> Log.e("Tag11", "getLocationUpdates: ${e.message}") }.onEach { location ->
                 val formatter: DateTimeFormatter =
                     DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
