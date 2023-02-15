@@ -1,12 +1,14 @@
 package com.shyam.roomdbexample
 
 import android.Manifest
-import android.content.Context
+import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentSender.SendIntentException
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -15,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
@@ -25,19 +29,25 @@ import com.google.android.gms.common.api.ResultCallback
 import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.*
 import com.google.gson.Gson
+import com.shyam.roomdbexample.RoomDB.AppDatabase
+import com.shyam.roomdbexample.RoomDB.book.Book
+import com.shyam.roomdbexample.RoomDB.book.BookDao
+import com.shyam.roomdbexample.RoomDB.user.UserDAO
 import com.shyam.roomdbexample.UtilsForBG.LocationService
+import com.shyam.roomdbexample.UtilsForBG.MyBinder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import android.location.LocationManager as LocationManager1
 
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var userDAO: UserDAO
     private lateinit var bookDao: BookDao
     private val arrayList: ArrayList<Book> = ArrayList()
+    var locationService = LocationService;
 
     @RequiresApi(Build.VERSION_CODES.O)
     val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -51,45 +61,33 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val db = Room.databaseBuilder(
-            applicationContext, BookDatabase::class.java, "book_database"
-        ).fallbackToDestructiveMigration().build()
+            applicationContext, AppDatabase::class.java, "book_database"
+        ).addMigrations(MIGRATION_1_2, MIGRATION_3_4).build()
+        userDAO = db.userDao()
         bookDao = db.bookDao()
         //testDB()
-        if (checkPermissions()) //enableLoc()
-        else requestPermissions()
-
+        if (checkPermissions()) enableLoc() else requestPermissions()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun testDB() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            //Insert
-            Log.i("MyTAG", "*****     Inserting 3 ITEMs     **********")
-            bookDao.insertBook(Book(0, "Java", "Alex", current))
-            bookDao.insertBook(Book(0, "PHP", "Mike", current))
-            bookDao.insertBook(Book(0, "Kotlin", "Amelia", current))
-            Log.i("MyTAG", "*****     Inserted 3 ITEMs       **********")
-            //Query
-            val books = bookDao.getAllBook()
-            Log.i("MyTAG", "*****   ${books.size} ITEMs there *****")
-            for (book in books) {
-                Log.i(
-                    "MyTAG",
-                    "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.created_at}"
-                )
-            }
+    val MIGRATION_1_2: Migration = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun insertData(view: View) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            //Insert
-            Log.i("MyTAG", "*****     Inserting 3 ITEMs     **********")
-            bookDao.insertBook(Book(0, "Java", "Alex", current))
-            bookDao.insertBook(Book(0, "PHP", "Mike", current))
-            bookDao.insertBook(Book(0, "Kotlin", "Amelia", current))
-            Log.i("MyTAG", "*****     Inserted 3 ITEMs       **********")
+    val MIGRATION_3_4: Migration = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+        }
+    }
+
+    private val m_serviceConnection: ServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            locationService = (service as MyBinder).getService()
+            Log.e("TAG", "onServiceConnected: " )
+        }
+
+        override fun onServiceDisconnected(className: ComponentName) {
+            Log.e("TAG111", "onServiceDisconnected: ")
+            locationService = null!!
         }
     }
 
@@ -97,12 +95,11 @@ class MainActivity : AppCompatActivity() {
         getData()
     }
 
-    fun getData() {
+    private fun getData() {
         arrayList.clear()
         lifecycleScope.launch(Dispatchers.IO) {
             //Query
             val books = bookDao.getAllBook()
-            Log.i("MyTAG", "*****   ${books.size} ITEMs there *****")
             for (book in books) {
                 Log.i(
                     "MyTAG",
@@ -110,13 +107,14 @@ class MainActivity : AppCompatActivity() {
                 )
                 arrayList.add(book)
             }
-
         }
     }
 
     fun deleteAllData() {
         lifecycleScope.launch(Dispatchers.IO) {
+            val user = userDAO.deleteUser()
             val books = bookDao.deleteAllBook()
+            Log.i("MyTAG", "*****   $user ITEMs there *****")
             Log.i("MyTAG", "*****   $books ITEMs there *****")
         }
         Toast.makeText(this, "History cleared...`:)", Toast.LENGTH_LONG).show()
@@ -134,26 +132,35 @@ class MainActivity : AppCompatActivity() {
     fun startService(view: View) {
         Intent(applicationContext, LocationService::class.java).apply {
             action = LocationService.ACTION_START
+            bindService(intent, m_serviceConnection, BIND_AUTO_CREATE);
             startService(this)
         }
         Toast.makeText(this, "Tracking-started", Toast.LENGTH_LONG).show()
     }
 
     private fun saveTrackingDetails(stringJson: String) = try {
-        val request = object : StringRequest(Method.POST, resources.getString(R.string.url), Response.Listener {
-            val jsonObject = JSONObject(it)
-            Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
-            Log.e("TAG111", "saveTrackingDetails: $it")
-            //delete
-            deleteAllData()
-        }, Response.ErrorListener {
-            android.widget.Toast.makeText(this, it.message, android.widget.Toast.LENGTH_LONG).show()
-            Log.e("TAG111", "saveTrackingDetails: $it")
-        }) {
+        val request = object : StringRequest(Method.POST,
+            resources.getString(R.string.url),
+            Response.Listener {
+                try {
+                    val jsonObject = JSONObject(it)
+                    Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
+                    Log.e("TAG111", "saveTrackingDetails: $it")
+                    if (jsonObject.getString("status").equals("true")) {
+                        deleteAllData()
+                    }
+                } catch (e: Exception) {
+                }
+            },
+            Response.ErrorListener {
+                android.widget.Toast.makeText(this, it.message, android.widget.Toast.LENGTH_LONG)
+                    .show()
+                Log.e("TAG111", "saveTrackingDetails: $it")
+            }) {
             override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
-                param["list"] = stringJson
                 param["emp_id"] = "11409"
+                param["list"] = stringJson
                 Log.e("TAG111", "getParams: $param")
                 return param
             }
@@ -179,16 +186,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    ///---------------
-
     private var googleApiClient: GoogleApiClient? = null
     val REQUEST_LOCATION = 199
-
-    private fun hasGPSDevice(context: Context): Boolean {
-        val mgr = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager1
-        val providers = mgr.allProviders
-        return providers.contains(LocationManager1.GPS_PROVIDER)
-    }
 
     private fun enableLoc() {
         if (googleApiClient == null) {
@@ -199,18 +198,19 @@ class MainActivity : AppCompatActivity() {
                             Log.e("TAG11", "onConnected: " )
 
                         }
+
                         override fun onConnectionSuspended(i: Int) {
                             googleApiClient!!.connect()
-                            Log.e("TAG11", "onConnectionSuspended: " )
+                            Log.e("TAG11", "onConnectionSuspended: ")
                         }
                     }).addOnConnectionFailedListener { connectionResult ->
                         Log.d("Location error", "Location error " + connectionResult.errorCode)
                     }.build()
             googleApiClient!!.connect()
             val locationRequest = LocationRequest.create()
-            locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            locationRequest.interval = 30 * 1000
-            locationRequest.fastestInterval = 5 * 1000
+            locationRequest.priority = Priority.PRIORITY_HIGH_ACCURACY
+            locationRequest.interval = 0
+            locationRequest.fastestInterval = 0
 
             val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
             builder.setAlwaysShow(true)
@@ -237,7 +237,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun deleteAllData(view: View) {
-        deleteAllData()
+
+        Intent(applicationContext, LocationService::class.java).apply {
+            action = LocationService.ACTION_RESTART
+            startService(this)
+        }
+        Toast.makeText(this, "", Toast.LENGTH_LONG).show()
     }
 
     private fun checkPermissions(): Boolean {
@@ -267,7 +272,9 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 0) {
             if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                Toast.makeText(this, "", Toast.LENGTH_LONG).show()
+                enableLoc()
+            } else {
+                Toast.makeText(this, "Denied", Toast.LENGTH_LONG).show()
             }
         }
     }

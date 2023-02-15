@@ -1,4 +1,4 @@
-package com.shyam.roomdbexample
+package com.shyam.roomdbexample.RoomDB.book
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity

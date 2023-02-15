@@ -6,7 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 
-class LocationApp : Application() {
+class NotificationUtil : Application() {
     override fun onCreate() {
         super.onCreate()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

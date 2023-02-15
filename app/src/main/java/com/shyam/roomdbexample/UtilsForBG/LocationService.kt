@@ -11,10 +11,10 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.room.Room
 import com.google.android.gms.location.LocationServices
-import com.shyam.roomdbexample.Book
-import com.shyam.roomdbexample.BookDao
-import com.shyam.roomdbexample.BookDatabase
 import com.shyam.roomdbexample.R
+import com.shyam.roomdbexample.RoomDB.AppDatabase
+import com.shyam.roomdbexample.RoomDB.book.Book
+import com.shyam.roomdbexample.RoomDB.book.BookDao
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -22,22 +22,29 @@ import kotlinx.coroutines.flow.onEach
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+
 class LocationService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val serviceScopeForRomm = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var locationClient: LocationClient
     private lateinit var bookDao: BookDao
     lateinit var current: String
+    var strStatus: String = "Null";
+    lateinit var context: Context
     override fun onBind(p0: Intent?): IBinder? {
+        Log.e("TAG", "Service Binding: ")
         return null
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate() {
         super.onCreate()
+        context = applicationContext
         locationClient = DefaultLocationClient(
             applicationContext, LocationServices.getFusedLocationProviderClient(applicationContext)
         )
         val db = Room.databaseBuilder(
-            applicationContext, BookDatabase::class.java, "book_database"
+            applicationContext, AppDatabase::class.java, "book_database"
         ).build()
         bookDao = db.bookDao()
     }
@@ -46,55 +53,79 @@ class LocationService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> start()
-            ACTION_STOP -> stop()
+            ACTION_STOP -> stop(true)
+            ACTION_RESTART -> stop(false)
         }
-        return super.onStartCommand(intent, flags, startId)
+        return START_STICKY
     }
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun start() {
-        val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        startForegroundService()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun startForegroundService() {
         val notification =
-            NotificationCompat.Builder(this, "location").setContentText("Location:null")
+            NotificationCompat.Builder(this, "location").setContentText("Location:$strStatus")
                 .setContentTitle("Track-location-Test").setSmallIcon(R.mipmap.ic_launcher)
                 .setOngoing(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        locationClient.getLocationUpdates(1000L).catch { e -> e.printStackTrace() }
-            .onEach { location ->
+        locationClient.getLocationUpdates(500L)
+            .catch { e -> Log.e("Tag11", "getLocationUpdates: ${e.message}") }.onEach { location ->
+                val formatter: DateTimeFormatter =
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                current = LocalDateTime.now().format(formatter)
                 val lat = location.latitude.toString()
                 val lng = location.longitude.toString()
-                current = LocalDateTime.now().format(formatter)
                 val updatedNotification = notification.setContentText("Location: ($lat,$lng)")
                 notificationManager.notify(1, updatedNotification.build())
+                Log.e("TAG", "$lat - $lng - $current")
                 insertData(lat, lng)
             }.launchIn(serviceScope)
-
         startForeground(1, notification.build())
     }
 
-    private fun stop() {
-        stopForeground(true)
-        stopSelf()
+    var flagStopService: Boolean = false
+
+    private fun stop(isTrue: Boolean) {
+        flagStopService = isTrue
+
+        Log.e("tag111", "$isTrue stop: $flagStopService")
+        if (flagStopService) {
+            stopForeground(true)
+            stopSelf()
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun insertData(lat: String, lng: String) {
         //Insert
-        Log.i("MyTAG", "lat-- $lat \t lng---$lng current--$current")
         bookDao.insertBook(Book(0, lat, lng, current))
     }
 
     companion object {
         const val ACTION_START = "ACTION_START"
         const val ACTION_STOP = "ACTION_STOP"
+        const val ACTION_RESTART = "ACTION_RESTART"
 
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onDestroy() {
+        if (flagStopService) {
+            stopForeground(true)
+            stopSelf()
+            serviceScope.cancel()
+            Log.e("tag111", "onDestroy:-----true ")
+        } else {
+//            serviceScope.cancel()
+            startForegroundService()
+            Log.e("tag", "onDestroy: false ")
+        }
+        strStatus = "onDestroy";
         super.onDestroy()
-        serviceScope.cancel()
     }
 }
 

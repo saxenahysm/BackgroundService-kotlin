@@ -1,10 +1,7 @@
-package com.shyam.roomdbexample
+package com.shyam.roomdbexample.RoomDB.book
 
-import androidx.room.Dao
-import androidx.room.Delete
-import androidx.room.Insert
-import androidx.room.Query
-import androidx.room.Update
+import androidx.room.*
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BookDao {
@@ -14,6 +11,7 @@ interface BookDao {
 
     @Query("DELETE FROM books_table")
     fun deleteAllBook(): Int
+
 
     @Insert
     fun insertBook(book: Book)
