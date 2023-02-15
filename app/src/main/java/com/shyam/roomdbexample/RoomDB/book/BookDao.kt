@@ -1,25 +1,28 @@
 package com.shyam.roomdbexample.RoomDB.book
 
 import androidx.room.*
-import kotlinx.coroutines.flow.Flow
+import com.shyam.roomdbexample.RoomDB.user.User
 
 @Dao
 interface BookDao {
 
     @Query("SELECT * FROM books_table")
-    fun getAllBook(): List<Book>
+    fun getAllLocations(): List<LocationModel>
+
+    @Query("SELECT * FROM books_table WHERE created_at LIKE :date")
+    fun getLocationForSelectedDate(date: String): List<LocationModel>
 
     @Query("DELETE FROM books_table")
-    fun deleteAllBook(): Int
+    fun deleteAllLocations(): Int
 
 
     @Insert
-    fun insertBook(book: Book)
+    fun insertLocation(locationModel: LocationModel)
 
     @Delete
-    fun deleteBook(book: Book)
+    fun deleteLocations(locationModel: LocationModel)
 
 
     @Update
-    fun updateBook(book: Book)
+    fun updateLocation(locationModel: LocationModel)
 }

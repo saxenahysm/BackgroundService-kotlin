@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Tracker-App</string>
     <string name="url">https://timekompas.com/api/shyam/save-live-location-test</string>
+    <string name="google_API_key_for_Map">AIzaSyAR1ZICCgrG7j_ZdLpkSoyPv9Uels5u7DQ</string>
 </resources>

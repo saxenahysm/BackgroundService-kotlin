@@ -30,11 +30,12 @@ import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.*
 import com.google.gson.Gson
 import com.shyam.roomdbexample.RoomDB.AppDatabase
-import com.shyam.roomdbexample.RoomDB.book.Book
 import com.shyam.roomdbexample.RoomDB.book.BookDao
+import com.shyam.roomdbexample.RoomDB.book.LocationModel
 import com.shyam.roomdbexample.RoomDB.user.UserDAO
 import com.shyam.roomdbexample.UtilsForBG.LocationService
 import com.shyam.roomdbexample.UtilsForBG.MyBinder
+import com.shyam.roomdbexample.mapscreens.ShowTrackHistoryActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -46,7 +47,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var userDAO: UserDAO
     private lateinit var bookDao: BookDao
-    private val arrayList: ArrayList<Book> = ArrayList()
+    private val arrayList: ArrayList<LocationModel> = ArrayList()
     var locationService = LocationService;
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -95,11 +96,21 @@ class MainActivity : AppCompatActivity() {
         getData()
     }
 
+    private fun addDummyData() {
+        arrayList.clear()
+        lifecycleScope.launch(Dispatchers.IO) {
+            //Query
+             bookDao.insertLocation(LocationModel(0, "21.241", "81.610", "2023-02-15 18:24:16"))
+             bookDao.insertLocation(LocationModel(0, "21.242", "81.612", "2023-02-15 18:24:16"))
+             bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-16 18:24:16"))
+        }
+    }
+
     private fun getData() {
         arrayList.clear()
         lifecycleScope.launch(Dispatchers.IO) {
             //Query
-            val books = bookDao.getAllBook()
+            val books = bookDao.getAllLocations()
             for (book in books) {
                 Log.i(
                     "MyTAG",
@@ -108,12 +119,13 @@ class MainActivity : AppCompatActivity() {
                 arrayList.add(book)
             }
         }
+        Toast.makeText(this, "Ready to save data into server", Toast.LENGTH_LONG).show()
     }
 
     fun deleteAllData() {
         lifecycleScope.launch(Dispatchers.IO) {
             val user = userDAO.deleteUser()
-            val books = bookDao.deleteAllBook()
+            val books = bookDao.deleteAllLocations()
             Log.i("MyTAG", "*****   $user ITEMs there *****")
             Log.i("MyTAG", "*****   $books ITEMs there *****")
         }
@@ -147,19 +159,19 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
                     Log.e("TAG111", "saveTrackingDetails: $it")
                     if (jsonObject.getString("status").equals("true")) {
-                        deleteAllData()
+//                        deleteAllData()
                     }
                 } catch (e: Exception) {
                 }
             },
             Response.ErrorListener {
-                android.widget.Toast.makeText(this, it.message, android.widget.Toast.LENGTH_LONG)
+                Toast.makeText(this, it.message, Toast.LENGTH_LONG)
                     .show()
                 Log.e("TAG111", "saveTrackingDetails: $it")
             }) {
             override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
-                param["emp_id"] = "297"
+                param["emp_id"] = "11409"
                 param["list"] = stringJson
                 Log.e("TAG111", "getParams: $param")
                 return param
@@ -238,11 +250,8 @@ class MainActivity : AppCompatActivity() {
 
     fun deleteAllData(view: View) {
 
-        Intent(applicationContext, LocationService::class.java).apply {
-            action = LocationService.ACTION_RESTART
-            startService(this)
-        }
-        Toast.makeText(this, "", Toast.LENGTH_LONG).show()
+        startActivity(Intent(applicationContext, ShowTrackHistoryActivity::class.java).apply { })
+        Toast.makeText(this, "--", Toast.LENGTH_LONG).show()
     }
 
     private fun checkPermissions(): Boolean {

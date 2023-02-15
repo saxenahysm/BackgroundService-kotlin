@@ -13,7 +13,7 @@ import androidx.room.Room
 import com.google.android.gms.location.LocationServices
 import com.shyam.roomdbexample.R
 import com.shyam.roomdbexample.RoomDB.AppDatabase
-import com.shyam.roomdbexample.RoomDB.book.Book
+import com.shyam.roomdbexample.RoomDB.book.LocationModel
 import com.shyam.roomdbexample.RoomDB.book.BookDao
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
@@ -102,7 +102,7 @@ class LocationService : Service() {
     @RequiresApi(Build.VERSION_CODES.O)
     fun insertData(lat: String, lng: String) {
         //Insert
-        bookDao.insertBook(Book(0, lat, lng, current))
+        bookDao.insertLocation(LocationModel(0, lat, lng, current))
     }
 
     companion object {
