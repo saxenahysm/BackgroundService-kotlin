@@ -9,7 +9,7 @@ interface BookDao {
     @Query("SELECT * FROM books_table")
     fun getAllLocations(): List<LocationModel>
 
-    @Query("SELECT * FROM books_table WHERE created_at LIKE :date")
+    @Query("SELECT * FROM books_table WHERE created_at =  :date  ")
     fun getLocationForSelectedDate(date: String): List<LocationModel>
 
     @Query("DELETE FROM books_table")

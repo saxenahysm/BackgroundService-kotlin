@@ -7,7 +7,6 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import androidx.room.Room
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
@@ -24,8 +23,6 @@ import com.shyam.roomdbexample.R
 import com.shyam.roomdbexample.RoomDB.AppDatabase
 import com.shyam.roomdbexample.RoomDB.book.BookDao
 import com.shyam.roomdbexample.RoomDB.book.LocationModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -51,7 +48,7 @@ class ShowTrackHistoryActivity : AppCompatActivity(), OnMapReadyCallback,
         Log.e(TAG, "onCreate: $selectedDate")
         val db = Room.databaseBuilder(
             applicationContext, AppDatabase::class.java, "book_database"
-        ).build()
+        ).allowMainThreadQueries().build()
         bookDao = db.bookDao()
         getAllTravelledRecords()
         val supportMapFragment =
@@ -66,29 +63,32 @@ class ShowTrackHistoryActivity : AppCompatActivity(), OnMapReadyCallback,
 
     private fun getAllTravelledRecords() {
         locationArrayLists.clear()
-        lifecycleScope.launch(Dispatchers.IO) {
-            //Query
-            val books = bookDao.getLocationForSelectedDate(selectedDate)
-            for (book in books) {
-                Log.i(
-                    TAG,
-                    "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.created_at}"
-                )
-                locationArrayLists.add(book)
-            }
+//        lifecycleScope.launch(Dispatchers.IO) {
+        //Query
+        val books = bookDao.getLocationForSelectedDate(selectedDate)
+        Log.e(TAG, "books size: " + books.size)
+        for (book in books) {
+            Log.i(
+                TAG,
+                "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.created_at}"
+            )
+            locationArrayLists.add(book)
         }
-        if (locationArrayLists.size > 0 ) onMapReady(googleMap)
-        else Toast.makeText(this,"No Records Found",Toast.LENGTH_LONG).show()
+        if (locationArrayLists.size > 0) onMapReady(googleMap)
+        else Toast.makeText(this, "No Records Found", Toast.LENGTH_LONG).show()
+        //        }
     }
 
     override fun onMapReady(p0: GoogleMap?) {
         try {
-            this.googleMap = googleMap;
+            Log.e(TAG, "onMapReady: " )
+            this.googleMap = p0;
             this.googleMap?.clear();
             if (locationArrayLists.size > 0) {
+                Log.e(TAG, "onMapReady: ${locationArrayLists.size} " )
                 if (!locationArrayLists[0].lat.equals("")) {
                     val markerOptionForOffice = MarkerOptions()
-                    var cordForMyOffice = LatLng(
+                    val cordForMyOffice = LatLng(
                         locationArrayLists[0].lat.toDouble(), locationArrayLists[0].lng.toDouble()
                     )
                     markerOptionForOffice.position(cordForMyOffice);
@@ -100,12 +100,13 @@ class ShowTrackHistoryActivity : AppCompatActivity(), OnMapReadyCallback,
                             LatLng(
                                 locationArrayLists[0].lat.toDouble(),
                                 locationArrayLists[0].lng.toDouble()
-                            ), 10F
+                            ), 40F
                         )
                     )
                     googleMap?.addMarker(markerOptionForOffice)?.showInfoWindow();
                 }
                 for (model in locationArrayLists) {
+                    Log.e(TAG, "onMapReady: ${model.lng} --- ${model.lat}" )
                     listLatLng.add(
                         LatLng(model.lat.toDouble(), model.lng.toDouble())
                     )
@@ -125,19 +126,20 @@ class ShowTrackHistoryActivity : AppCompatActivity(), OnMapReadyCallback,
     }
 
     private var calendarFrom = Calendar.getInstance()
+
     fun selectDate(view: View) {
         val datePickerDialog = DatePickerDialog.OnDateSetListener { datePicker, i, i2, i3 ->
-            Log.e(TAG, "selectDate: $i-$i2-$i3")
             calendarFrom.set(Calendar.YEAR, i)
             calendarFrom.set(Calendar.MONTH, i2)
             calendarFrom.set(Calendar.DAY_OF_MONTH, i3)
             calendarFrom.set(Calendar.HOUR_OF_DAY, 0)
             calendarFrom.set(Calendar.MINUTE, 0)
 
-            val simpleDateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm")
+            val simpleDateFormat = SimpleDateFormat("dd-MM-yyyy")
             txtForDate?.text = "Selected Date" + simpleDateFormat.format(calendarFrom.time)
             val simpleDateFormatNew = SimpleDateFormat("yyyy-MM-dd")
             selectedDate = simpleDateFormatNew.format(calendarFrom.time)
+            Log.e(TAG, "selectDate: $selectedDate ")
             getAllTravelledRecords()
         }
 

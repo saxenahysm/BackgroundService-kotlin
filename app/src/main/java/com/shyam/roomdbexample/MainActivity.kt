@@ -1,6 +1,7 @@
 package com.shyam.roomdbexample
 
 import android.Manifest
+import android.app.ProgressDialog
 import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentSender.SendIntentException
@@ -68,6 +69,7 @@ class MainActivity : AppCompatActivity() {
         bookDao = db.bookDao()
         //testDB()
         if (checkPermissions()) enableLoc() else requestPermissions()
+        addDummyData()
     }
 
     val MIGRATION_1_2: Migration = object : Migration(3, 4) {
@@ -100,9 +102,13 @@ class MainActivity : AppCompatActivity() {
         arrayList.clear()
         lifecycleScope.launch(Dispatchers.IO) {
             //Query
-             bookDao.insertLocation(LocationModel(0, "21.241", "81.610", "2023-02-15 18:24:16"))
-             bookDao.insertLocation(LocationModel(0, "21.242", "81.612", "2023-02-15 18:24:16"))
-             bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-16 18:24:16"))
+            bookDao.insertLocation(LocationModel(0, "21.241", "81.610", "2023-02-14"))
+            bookDao.insertLocation(LocationModel(0, "21.242", "81.612", "2023-02-15"))
+            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-16"))
+            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-18"))
+            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-19"))
+            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-20"))
+            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-21"))
         }
     }
 
@@ -113,7 +119,7 @@ class MainActivity : AppCompatActivity() {
             val books = bookDao.getAllLocations()
             for (book in books) {
                 Log.i(
-                    "MyTAG",
+                    "TAG11",
                     "id: ${book.id} latitude: ${book.lat} Longitude: ${book.lng} time: ${book.created_at}"
                 )
                 arrayList.add(book)
@@ -151,20 +157,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveTrackingDetails(stringJson: String) = try {
-        val request = object : StringRequest(Method.POST,
+        progressBar = ProgressDialog(this);
+        progressBar.setTitle("Please wait")
+        progressBar.setCancelable(false)
+        progressBar.show()
+        val request = object : StringRequest(
+            Method.POST,
             resources.getString(R.string.url),
             Response.Listener {
+                progressBar.dismiss()
                 try {
                     val jsonObject = JSONObject(it)
                     Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
                     Log.e("TAG111", "saveTrackingDetails: $it")
                     if (jsonObject.getString("status").equals("true")) {
-//                        deleteAllData()
+                        deleteAllData()
                     }
                 } catch (e: Exception) {
                 }
             },
             Response.ErrorListener {
+                progressBar.dismiss()
                 Toast.makeText(this, it.message, Toast.LENGTH_LONG)
                     .show()
                 Log.e("TAG111", "saveTrackingDetails: $it")
@@ -186,6 +199,7 @@ class MainActivity : AppCompatActivity() {
         e.printStackTrace()
     }
 
+    lateinit var progressBar: ProgressDialog
     fun saveDataIntoServer(view: View) {
         val gson = Gson()
         val stringJson = gson.toJson(arrayList)
@@ -276,7 +290,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults: IntArray
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 0) {
