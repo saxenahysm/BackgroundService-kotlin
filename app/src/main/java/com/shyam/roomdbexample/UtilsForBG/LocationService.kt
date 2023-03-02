@@ -75,7 +75,7 @@ class LocationService : Service() {
         locationClient.getLocationUpdates(1000L)
             .catch { e -> Log.e("Tag11", "getLocationUpdates: ${e.message}") }.onEach { location ->
                 val formatter: DateTimeFormatter =
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd")
                 current = LocalDateTime.now().format(formatter)
                 val lat = location.latitude.toString()
                 val lng = location.longitude.toString()

@@ -2,10 +2,8 @@ package com.shyam.roomdbexample
 
 import android.Manifest
 import android.app.ProgressDialog
-import android.content.ComponentName
-import android.content.Intent
+import android.content.*
 import android.content.IntentSender.SendIntentException
-import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -22,6 +20,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Response
+import com.android.volley.VolleyError
 import com.android.volley.toolbox.StringRequest
 import com.android.volley.toolbox.Volley
 import com.google.android.gms.common.api.GoogleApiClient
@@ -40,11 +39,15 @@ import com.shyam.roomdbexample.mapscreens.ShowTrackHistoryActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
+    private val sharedPrefFile = "kotlinSharedPreference"
+    private lateinit var sharedPreferences: SharedPreferences;
 
     private lateinit var userDAO: UserDAO
     private lateinit var bookDao: BookDao
@@ -69,7 +72,16 @@ class MainActivity : AppCompatActivity() {
         bookDao = db.bookDao()
         //testDB()
         if (checkPermissions()) enableLoc() else requestPermissions()
-        addDummyData()
+//        addDummyData()
+//        sharedPreferenceProcess()
+//        getLocationList()
+    }
+
+    private fun sharedPreferenceProcess() {
+        sharedPreferences = this.getSharedPreferences(sharedPrefFile, Context.MODE_PRIVATE)
+        val editor: SharedPreferences.Editor = sharedPreferences.edit()
+        editor.putBoolean("isFirstTime", true)
+        editor.commit()
     }
 
     val MIGRATION_1_2: Migration = object : Migration(3, 4) {
@@ -98,17 +110,121 @@ class MainActivity : AppCompatActivity() {
         getData()
     }
 
+
+    private var locationArrayLists: ArrayList<LocationModel> = ArrayList()
+
+    private fun getLocationList() {
+        Log.e("TAG111", "getLocationList: " + sharedPreferences.getBoolean("isFirstTime",true))
+        if (sharedPreferences.getBoolean("isFirstTime", false)) {
+            var selectedDate: String = SimpleDateFormat("yyyy-MM-dd").format(Date())
+            Log.e("TAG111", "selectedDate: " + selectedDate)
+
+            progressBar = ProgressDialog(this)
+            progressBar.setTitle("Please wait... ")
+            progressBar.setMessage("Getting the location data")
+            progressBar.show()
+            locationArrayLists.clear()
+            val request: StringRequest = object : StringRequest(Method.POST,
+                "https://timekompas.com/api/shyam/getusertrackinghistory",
+                Response.Listener { response: String ->
+                    progressBar.hide()
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            Log.e("TAG111", "getLocationList: $response")
+                            val jsonObject = JSONObject(response)
+                            if (jsonObject.getString("status") == "true") {
+                                if (jsonObject.getJSONArray("list_array").length() > 0) {
+                                    val array = jsonObject.getJSONArray("list_array")
+                                    for (i in 0 until array.length()) {
+                                        val jsonArray = array.getJSONObject(i)
+                                        bookDao.insertLocation(
+                                            LocationModel(
+                                                0,
+                                                jsonArray.getString("lat"),
+                                                jsonArray.getString("lng"),
+                                                selectedDate
+                                            )
+                                        )
+                                    }
+                                } else {
+                                    Toast.makeText(
+                                        applicationContext,
+                                        jsonObject.getString("message"),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            } else {
+                                Toast.makeText(
+                                    applicationContext,
+                                    jsonObject.getString("message"),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                },
+                Response.ErrorListener { volleyError: VolleyError ->
+                    progressBar.hide()
+                    volleyError.printStackTrace()
+                }) {
+                override fun getParams(): Map<String, String>? {
+                    val params: MutableMap<String, String> = java.util.HashMap()
+                    params["empid"] = "10"
+                    params["token_id"] = "10"
+                    params["date"] = "2023-03-01"
+                    Log.e("TAG111", "getLocationList: $params")
+                    return params
+                }
+            }
+            request.retryPolicy = DefaultRetryPolicy(
+                15000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            )
+            val requestQueue = Volley.newRequestQueue(this)
+            requestQueue.add(request)
+        }
+    }
+
     private fun addDummyData() {
         arrayList.clear()
         lifecycleScope.launch(Dispatchers.IO) {
-            //Query
-            bookDao.insertLocation(LocationModel(0, "21.241", "81.610", "2023-02-14"))
-            bookDao.insertLocation(LocationModel(0, "21.242", "81.612", "2023-02-15"))
-            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-16"))
-            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-18"))
-            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-19"))
-            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-20"))
-            bookDao.insertLocation(LocationModel(0, "21.243", "81.613", "2023-02-21"))
+            bookDao.insertLocation(LocationModel(0, "21.2348842", "81.6036043", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348842", "81.6036156\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348134\n", "81.6036337\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348134\n", "81.603641\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348611\n", "81.6035442\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.234838\n", "81.6035234\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348308\n", "81.6035295\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348194\n", "81.6035211\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348207\n", "81.6035265\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348115\n", "81.6035216\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348152\n", "81.6035192\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348219\n", "81.6035275\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348227\n", "81.6035244\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348253\n", "81.6035286\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348268\n", "81.6035272\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348373\n", "81.6035297\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348519\n", "81.6035366\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348599\n", "81.6035402\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348645\n", "81.6035409\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348731\n", "81.6035445\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348798\n", "81.6035485\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348861\n", "81.6035523\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348949\n", "81.6035593\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349311\n", "81.6036216\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349311\n", "81.6036218\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349311\n", "81.6036221\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349312\n", "81.6036222\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349313\n", "81.6036224\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349316\n", "81.6036226\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349327\n", "81.6036231\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349351\n", "81.6036254\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349351\n", "81.6036254\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2349374\n", "81.6036269\n", "2023-03-02"))
+            bookDao.insertLocation(LocationModel(0, "21.2348617\n", "81.6035664\n", "2023-03-02"))
         }
     }
 
@@ -171,20 +287,18 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, jsonObject.getString("message"), Toast.LENGTH_LONG).show()
                     Log.e("TAG111", "saveTrackingDetails: $it")
                     if (jsonObject.getString("status").equals("true")) {
-                        deleteAllData()
+//                        deleteAllData()
                     }
                 } catch (e: Exception) {
                 }
             },
             Response.ErrorListener {
                 progressBar.dismiss()
-                Toast.makeText(this, it.message, Toast.LENGTH_LONG)
-                    .show()
                 Log.e("TAG111", "saveTrackingDetails: $it")
             }) {
             override fun getParams(): Map<String, String> {
                 val param = HashMap<String, String>()
-                param["emp_id"] = "11409"
+                param["emp_id"] = "10"
                 param["list"] = stringJson
                 Log.e("TAG111", "getParams: $param")
                 return param
@@ -265,7 +379,6 @@ class MainActivity : AppCompatActivity() {
     fun deleteAllData(view: View) {
 
         startActivity(Intent(applicationContext, ShowTrackHistoryActivity::class.java).apply { })
-        Toast.makeText(this, "--", Toast.LENGTH_LONG).show()
     }
 
     private fun checkPermissions(): Boolean {
