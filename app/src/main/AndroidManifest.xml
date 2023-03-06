@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
+
     <application
         android:name=".UtilsForBG.NotificationUtil"
         android:allowBackup="true"
@@ -19,15 +20,29 @@
         android:theme="@style/Theme.RoomDBExample"
         tools:replace="android:icon,android:label,android:theme,android:allowBackup"
         tools:targetApi="31">
-<!--        android:process=":my_process"-->
+        <activity
+            android:name=".mapscreens.ShowTrackHistoryActivity"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
+            android:name=".coroutinesExamples.ActivityCoroutineExample"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity> <!-- android:process=":my_process" -->
         <service
             android:name=".UtilsForBG.LocationService"
             android:enabled="true"
             android:foregroundServiceType="location" />
+
         <activity
             android:name=".MainActivity"
-            android:launchMode="singleTop"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.RoomDBExample">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -39,6 +54,12 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
+
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_API_key_for_Map" />
+
     </application>
 
 </manifest>

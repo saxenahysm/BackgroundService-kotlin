@@ -13,7 +13,7 @@ import androidx.room.Room
 import com.google.android.gms.location.LocationServices
 import com.shyam.roomdbexample.R
 import com.shyam.roomdbexample.RoomDB.AppDatabase
-import com.shyam.roomdbexample.RoomDB.book.Book
+import com.shyam.roomdbexample.RoomDB.book.LocationModel
 import com.shyam.roomdbexample.RoomDB.book.BookDao
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.catch
@@ -72,10 +72,10 @@ class LocationService : Service() {
                 .setOngoing(true)
         val notificationManager =
             getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        locationClient.getLocationUpdates(500L)
+        locationClient.getLocationUpdates(1000L)
             .catch { e -> Log.e("Tag11", "getLocationUpdates: ${e.message}") }.onEach { location ->
                 val formatter: DateTimeFormatter =
-                    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd")
                 current = LocalDateTime.now().format(formatter)
                 val lat = location.latitude.toString()
                 val lng = location.longitude.toString()
@@ -102,7 +102,7 @@ class LocationService : Service() {
     @RequiresApi(Build.VERSION_CODES.O)
     fun insertData(lat: String, lng: String) {
         //Insert
-        bookDao.insertBook(Book(0, lat, lng, current))
+        bookDao.insertLocation(LocationModel(0, lat, lng, current))
     }
 
     companion object {
